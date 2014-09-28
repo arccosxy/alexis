@@ -1,4 +1,5 @@
 #include "unp.h"
+#include "rtspServer.h"
 #include <limits.h>
 #include <sys/msg.h>
 
@@ -7,20 +8,21 @@
 #ifndef OPEN_MAX
 #define OPEN_MAX 1024
 #endif
-
-struct my_msg_st
+/*
+struct req 
 {
-    long int my_msg_type;
+    int type;
     char data[MAXLINE];
 };
-
+*/
 int main(int argc, char **argv)
 {
     printf("-------------------------------------------------------------\n");
-    printf("RTSP Sever running...\n");
+    printf("App Sever running...\n");
     printf("Server IP: %s Port: %d \n", SERV_IP, SERV_PORT);
     printf("-------------------------------------------------------------\n");
 
+    system("./rtspServer &");
     int i, maxi, listenfd, connfd, sockfd;
     int nready;
     ssize_t recvbytes;
@@ -104,15 +106,15 @@ int main(int argc, char **argv)
 
 		    //Add message queue.
 		    int msgid;
-		    struct my_msg_st control_data;
+		    struct req req_data;
 		    msgid = msgget((key_t)1234, 0666 | IPC_CREAT);
 		    if(msgid == -1){
 			perror("msgget failed");
 		    }
-		    control_data.my_msg_type = 8687;//pid
-		    strcpy(control_data.data, buf);
+		    req_data.type = sockfd;
+		    strcpy(req_data.data, buf);
 
-		    if(msgsnd(msgid, (void*)&control_data, MAXLINE, 0) == -1){
+		    if(msgsnd(msgid, (void*)&req_data, MAXLINE, 0) == -1){
 				perror("msgsnd failed");
 		    }		
 		}
