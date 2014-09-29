@@ -112,6 +112,20 @@ int main(int argc, char **argv)
 			perror("msgget failed");
 		    }
 		    req_data.type = sockfd;
+                    cout << "The sockfd is: " << sockfd << endl;
+                    struct sockaddr_in serv, cli;
+    		    socklen_t serv_len = sizeof(serv);
+    		    socklen_t cli_len = sizeof(cli);
+    	            char serv_ip[20], cli_ip[20];
+
+                    getsockname(sockfd, (struct sockaddr *)&cli, &cli_len);
+                    getpeername(sockfd, (struct sockaddr *)&serv, &serv_len);
+                    inet_ntop(AF_INET, &cli.sin_addr, cli_ip, sizeof(cli_ip));
+                    inet_ntop(AF_INET, &serv.sin_addr, serv_ip, sizeof(serv_ip));
+                    string cliIp(cli_ip);
+                    string servIp(serv_ip);
+                    cout << "The appServer servIp is: " << servIp << endl;
+                    cout << "The appServer cliIp is: " << cliIp << endl;
 		    strcpy(req_data.data, buf);
 
 		    if(msgsnd(msgid, (void*)&req_data, MAXLINE, 0) == -1){
