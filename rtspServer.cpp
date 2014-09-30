@@ -1,6 +1,8 @@
 #include "rtspServer.h"
 #include <string>
 
+long global_sessionID = 1;
+
 string getMethod(char *pMessage)
 {
     string method = "";
@@ -49,15 +51,15 @@ string getClientSessionId(char *pMessage)
     return clientSessionId;
 }
 
-int handle_setup(struct req *req)
+string handle_setup(struct req *req, string servIp, string cliIp)
 {
     string res = "";
     char sessionId[30];
+    /*
     struct sockaddr_in serv, cli;
     socklen_t serv_len = sizeof(serv);
     socklen_t cli_len = sizeof(cli);
-    char serv_ip[20], cli_ip[20];
-    
+    char serv_ip[20], cli_ip[20]; 
     getsockname(req->type, (struct sockaddr *)&cli, &cli_len);
     getpeername(req->type, (struct sockaddr *)&serv, &serv_len);
     inet_ntop(AF_INET, &cli.sin_addr, cli_ip, sizeof(cli_ip));
@@ -66,7 +68,7 @@ int handle_setup(struct req *req)
     string servIp(serv_ip);
     cout << "The servIp is: " << servIp << endl;
     cout << "The cliIp is: " << cliIp << endl;
-
+    */
     global_sessionID ++;
     int len = sprintf(sessionId, "%ld", global_sessionID);
     sessionId[len] = '\0';
@@ -85,9 +87,11 @@ int handle_setup(struct req *req)
     res += "a=tool:libavformat 55.21.101\r\n";
     res += "m=video 5060 RTP/AVP 96\r\n";
     res += "rtpmap:96 H264/90000\r\n";
-    res += "a=fmtp:96 packetization-mode=1\r\n"; 
-}
+    res += "a=fmtp:96 packetization-mode=1\r\n";
 
+    return res; 
+}
+/*
 int main()
 {
     int running = 1;
@@ -113,3 +117,4 @@ int main()
     }
     return 0;
 }
+*/

@@ -8,6 +8,7 @@
 #ifndef OPEN_MAX
 #define OPEN_MAX 1024
 #endif
+#define CONTROLLEN sizeof(struct cmsghdr) + sizeof(int)
 /*
 struct req 
 {
@@ -15,14 +16,169 @@ struct req
     char data[MAXLINE];
 };
 */
+int send_fd(int sockfd, int fd_to_send)
+{
+    char tmpbuf[CONTROLLEN];
+    struct cmsghdr *cmptr = (struct cmsghdr *)tmpbuf;
+    struct iovec iov[1];
+    struct msghdr msg;
+    char buf[1];
+
+    msg.msg_name = NULL;
+    msg.msg_namelen = 0;
+    
+    iov[0].iov_base = buf;
+    iov[0].iov_len = 1;
+    msg.msg_iov = iov;
+    msg.msg_iovlen = 1;
+    msg.msg_control = cmptr;
+    msg.msg_controllen = CONTROLLEN;
+    cmptr->cmsg_level = SOL_SOCKET;
+    cmptr->cmsg_type = SCM_RIGHTS;
+    cmptr->cmsg_len = CONTROLLEN;
+    *(int *)CMSG_DATA(cmptr) = fd_to_send;
+    
+    for(;;){ 
+        if(sendmsg(sockfd, &msg, 0) != 1){
+            if(EINTR == errno)
+                continue;
+            else
+                return -1;
+        }
+        else
+           break;
+    }
+    return 0;
+}
+
+int recv_fd(int sockfd, int *fd_to_recv)
+{
+    char tmpbuf[CONTROLLEN];
+    struct cmsghdr *cmptr = (struct cmsghdr *)tmpbuf;
+    struct iovec iov[1];
+    struct msghdr msg;
+    char buf[1];
+
+    msg.msg_name = NULL;
+    msg.msg_namelen = 0;
+    
+    iov[0].iov_base = buf;
+    iov[0].iov_len = 1;
+    msg.msg_iov = iov;
+    msg.msg_iovlen = 1;
+    msg.msg_control = cmptr;
+    msg.msg_controllen = CONTROLLEN;
+
+    for(;;){
+        if(recvmsg(sockfd, &msg, 0) <= 0){
+            if(EINTR == errno)
+                continue;
+            else
+               return -1;
+        }
+        else
+           break;
+    }
+    
+    *fd_to_recv = *(int *)CMSG_DATA(cmptr);
+
+    return 0;
+}
+
+int x_sock_set_block(int sockfd, int on)
+{
+    int val, ret;
+    val = fcntl(sockfd, F_GETFL, 0);
+    if(on){
+        ret = fcntl(sockfd, F_SETFL, ~O_NONBLOCK & val);
+    }
+    else{
+        ret = fcntl(sockfd, F_SETFL, O_NONBLOCK | val);
+    }
+    if(ret){
+        return errno;
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     printf("-------------------------------------------------------------\n");
     printf("App Sever running...\n");
     printf("Server IP: %s Port: %d \n", SERV_IP, SERV_PORT);
     printf("-------------------------------------------------------------\n");
+    
+    int sockpair[2];
+    int ret, fd;
+    pid_t pid;
 
-    system("./rtspServer &");
+    ret = socketpair(AF_UNIX, SOCK_STREAM, 0, sockpair);
+    if(ret < 0){
+        perror("Call socketpair error");
+        exit(0);
+    }
+    //system("./rtspServer &");
+    pid = fork();
+    if(pid == 0){
+        //child process
+        cout << "in child..." << endl;
+        close(sockpair[1]);
+
+        int running = 1;
+        int msgid;
+        int msg_to_receive = 0;
+        struct req req_data;
+        int ret;
+        char response[MAXLINE];
+        string res;
+
+        msgid = msgget((key_t)1234, 0666 | IPC_CREAT);
+        if(msgid == -1){
+            perror("msgget failed");
+        }
+        cout << "rtspServer running..." << endl;
+        while(running)
+        {
+            if(msgrcv(msgid, (void *)&req_data, MAXLINE, msg_to_receive, 0) == -1)
+            {
+                perror("msgrcv failed");
+            }
+            printf("msgcv:\n%s", req_data.data);
+            
+            /*ret = x_sock_set_block(sockpair[0], 1);
+            if(ret != 0){
+                perror("x_sock_set_block error");
+            }*/
+            ret = recv_fd(sockpair[0], &fd);
+            if(ret != 0)
+                cout << "recv_fd failed." << endl;
+            cout << "Recv sockfd is: " << fd << endl;
+            if(getMethod(req_data.data) == "SETUP")
+            {  
+                struct sockaddr_in serv, cli;
+                socklen_t serv_len = sizeof(serv);
+                socklen_t cli_len = sizeof(cli); 
+                char serv_ip[20], cli_ip[20];
+
+                getsockname(fd, (struct sockaddr *)&cli, &cli_len);
+                getpeername(fd, (struct sockaddr *)&serv, &serv_len);
+                inet_ntop(AF_INET, &cli.sin_addr, cli_ip, sizeof(cli_ip));
+                inet_ntop(AF_INET, &serv.sin_addr, serv_ip, sizeof(serv_ip));
+                string cliIp(cli_ip);
+                string servIp(serv_ip);
+                cout << "The servIp is: " << servIp << endl;
+                cout << "The cliIp is: " << cliIp << endl;
+                res = handle_setup(&req_data, servIp, cliIp);
+            }
+            strcpy(response, res.c_str());
+            cout << "response is:\r\n" << response;
+            send(fd, response, strlen(response)+1, 0);
+            
+        }
+
+        return 0;
+    }
+    //parent process
     int i, maxi, listenfd, connfd, sockfd;
     int nready;
     ssize_t recvbytes;
@@ -113,24 +269,17 @@ int main(int argc, char **argv)
 		    }
 		    req_data.type = sockfd;
                     cout << "The sockfd is: " << sockfd << endl;
-                    struct sockaddr_in serv, cli;
-    		    socklen_t serv_len = sizeof(serv);
-    		    socklen_t cli_len = sizeof(cli);
-    	            char serv_ip[20], cli_ip[20];
-
-                    getsockname(sockfd, (struct sockaddr *)&cli, &cli_len);
-                    getpeername(sockfd, (struct sockaddr *)&serv, &serv_len);
-                    inet_ntop(AF_INET, &cli.sin_addr, cli_ip, sizeof(cli_ip));
-                    inet_ntop(AF_INET, &serv.sin_addr, serv_ip, sizeof(serv_ip));
-                    string cliIp(cli_ip);
-                    string servIp(serv_ip);
-                    cout << "The appServer servIp is: " << servIp << endl;
-                    cout << "The appServer cliIp is: " << cliIp << endl;
 		    strcpy(req_data.data, buf);
+                    
+                    cout << "send_fd..." << endl;
+                    if(send_fd(sockpair[1], sockfd) != 0){
+                        perror("send_fd failed");
+                    }
 
 		    if(msgsnd(msgid, (void*)&req_data, MAXLINE, 0) == -1){
-				perror("msgsnd failed");
-		    }		
+			perror("msgsnd failed");
+		    }
+                    //close(sockfd); 		
 		}
 		if(--nready <= 0)
 		    break;

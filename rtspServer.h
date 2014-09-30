@@ -14,10 +14,15 @@
 #include <limits.h>
 
 using namespace std;
-long global_sessionID = 1;
+
 struct req
 {
     int type;
     char data[MAXLINE];
 };
+
+string getMethod(char *pMessage);
+string getCsq(char *pMessage);
+string getClientSessionId(char *pMessage);
+string handle_setup(struct req *req, string servIp, string cliIp);
 
