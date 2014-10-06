@@ -179,6 +179,7 @@ int main(int argc, char **argv)
         return 0;
     }
     //parent process
+    close(sockpair[0]);
     int i, maxi, listenfd, connfd, sockfd;
     int nready;
     ssize_t recvbytes;
