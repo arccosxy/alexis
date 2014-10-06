@@ -173,7 +173,7 @@ int main(int argc, char **argv)
             strcpy(response, res.c_str());
             cout << "response is:\r\n" << response;
             send(fd, response, strlen(response)+1, 0);
-            
+            close(fd);
         }
 
         return 0;
