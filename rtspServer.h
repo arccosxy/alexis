@@ -25,4 +25,6 @@ string getMethod(char *pMessage);
 string getCsq(char *pMessage);
 string getClientSessionId(char *pMessage);
 string handle_setup(struct req *req, string servIp, string cliIp);
-
+string handle_play(struct req *req);
+string handle_operate(struct req *req);
+string handle_teardown(struct req *req);

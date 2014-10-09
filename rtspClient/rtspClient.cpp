@@ -44,12 +44,41 @@ void rtspClient::parseResMessage(char *pMessage)
     {
         pResult += strlen(pSubStr) + 1;
     }
-    for(int i = 0; *pResult != '\r'; ++i)
+    int i;
+    for(i = 0; *pResult != '\r'; i++)
     {
     	m_szSession[i] = *pResult;
-        pResult++;
+        pResult ++;
     }
+    m_szSession[i] = '\0';
     printf("session is: %s\n", m_szSession);
+}
+
+//功能：从setup请求的响应中取出SDP字段
+void rtspClient::getSDP(char *pMessage, char *fileName)
+{
+    char *pStr = pMessage;
+    const char *pSubStr = "v=0";
+    char tmp[1024];
+    char *pResult = strstr(pStr, pSubStr);
+    int len = sprintf(tmp, "%s", "SDP:\r\n");
+    if(pResult != NULL)
+    {
+        int i;
+        for(i = len; *pResult != '\0'; i++)
+        {
+            tmp[i] = *pResult;
+            pResult ++;
+        }
+        tmp[i] = '\0';
+        printf("SDP is: \n%s\n", tmp);
+        FILE *pFile = fopen(fileName, "w");
+        fwrite(tmp, 1, strlen(tmp), pFile);
+        fclose(pFile);
+    }
+    else{
+        perror("get SDP error");
+    }
 }
 
 size_t rtspClient::Setup()
@@ -79,7 +108,9 @@ size_t rtspClient::Setup()
     fprintf(stdout, "setup response message is:\n%s\n", setupResponse);
     
     //从返回信息中取出seesion字段    
-    //parseResMessage(setupResponse);
+    parseResMessage(setupResponse);
+    //从返回信息中取出SDP字段
+    getSDP(setupResponse, "client.sdp");
     return 0;
 }
 

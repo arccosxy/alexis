@@ -3,7 +3,7 @@
 #include <limits.h>
 #include <sys/msg.h>
 
-#define SERV_PORT 554
+#define SERV_PORT 8554
 #define SERV_IP "127.0.0.1"
 #ifndef OPEN_MAX
 #define OPEN_MAX 1024
@@ -16,13 +16,33 @@ struct req
     char data[MAXLINE];
 };
 */
-int send_fd(int sockfd, int fd_to_send)
+ssize_t send_fd(int sockfd, int fd_to_send)
 {
-    char tmpbuf[CONTROLLEN];
-    struct cmsghdr *cmptr = (struct cmsghdr *)tmpbuf;
+    //char tmpbuf[CONTROLLEN];
+    //struct cmsghdr *cmptr = (struct cmsghdr *)tmpbuf;
+
+#ifdef HAVE_MSGHDR_MSG_CONTROL
+    union{
+        struct cmsghdr cm;
+        char control[CMSG_SPACE(sizeof(int))];
+    }control_un;
     struct iovec iov[1];
     struct msghdr msg;
     char buf[1];
+    struct cmsghdr *cmptr;
+   
+    msg.msg_control = control_un.control;
+    msg.msg_controllen = sizeof(control_un.control);
+
+    cmptr = CMSG_FIRSTHDR(&msg);
+    cmptr->cmsg_level = SOL_SOCKET;
+    cmptr->cmsg_type = SCM_RIGHTS;
+    cmptr->cmsg_len = CMSG_LEN(sizeof(int));
+    *((int *)CMSG_DATA(cmptr)) = fd_to_send;
+#else
+    msg.msg_accrights = (caddr_t)&fd_to_send;
+    msg.msg_accrightslen = sizeof(int);
+#endif
 
     msg.msg_name = NULL;
     msg.msg_namelen = 0;
@@ -31,33 +51,32 @@ int send_fd(int sockfd, int fd_to_send)
     iov[0].iov_len = 1;
     msg.msg_iov = iov;
     msg.msg_iovlen = 1;
-    msg.msg_control = cmptr;
-    msg.msg_controllen = CONTROLLEN;
-    cmptr->cmsg_level = SOL_SOCKET;
-    cmptr->cmsg_type = SCM_RIGHTS;
-    cmptr->cmsg_len = CONTROLLEN;
-    *(int *)CMSG_DATA(cmptr) = fd_to_send;
     
-    for(;;){ 
-        if(sendmsg(sockfd, &msg, 0) != 1){
-            if(EINTR == errno)
-                continue;
-            else
-                return -1;
-        }
-        else
-           break;
-    }
-    return 0;
+    return(sendmsg(sockfd, &msg, 0));
 }
 
 int recv_fd(int sockfd, int *fd_to_recv)
 {
-    char tmpbuf[CONTROLLEN];
-    struct cmsghdr *cmptr = (struct cmsghdr *)tmpbuf;
+    //char tmpbuf[CONTROLLEN];
+    //struct cmsghdr *cmptr = (struct cmsghdr *)tmpbuf;
     struct iovec iov[1];
     struct msghdr msg;
+    ssize_t n;
     char buf[1];
+#ifdef HAVE_MSGHDR_MSG_CONTROL
+    union{
+        struct cmsghdr *cmptr;
+        char control[CMSG_SPACE(sizeof(int))];
+    }control_un;
+    struct cmsghdr *cmptr;
+
+    msg.msg_control = control_un.control;
+    msg.msg_controllen = sizeof(control_un.control);
+#else
+    int newfd;
+    msg.msg_accrights = (caddr_t)&newfd;
+    msg.msg_accrightslen = sizeof(int);
+#endif
 
     msg.msg_name = NULL;
     msg.msg_namelen = 0;
@@ -66,23 +85,26 @@ int recv_fd(int sockfd, int *fd_to_recv)
     iov[0].iov_len = 1;
     msg.msg_iov = iov;
     msg.msg_iovlen = 1;
-    msg.msg_control = cmptr;
-    msg.msg_controllen = CONTROLLEN;
 
-    for(;;){
-        if(recvmsg(sockfd, &msg, 0) <= 0){
-            if(EINTR == errno)
-                continue;
-            else
-               return -1;
-        }
-        else
-           break;
+    if((n = recvmsg(sockfd, &msg, 0)) <= 0)
+        return(n);
+#ifdef HAVE_MSGHDR_MSG_CONTROL
+    if((cmptr = CMSG_FIRSTHDR(&msg)) != NULL && cmptr->cmsg_len == CMSG_LEN(sizeof(int))){
+        if(cmptr->cmsg_level != SOL_SOCKET)
+            perror("control level != SOL_SOKECT");
+        if(cmptr->cmsg_type != SCM_RIGHTS)
+            perror("control type != SCM_RIGHTS");
+        *fd_to_recv = *(int *)CMSG_DATA(cmptr);
     }
-    
-    *fd_to_recv = *(int *)CMSG_DATA(cmptr);
-
-    return 0;
+    else
+        *fd_to_recv = -1;
+#else 
+    if(msg.msg_accrightslen == sizeof(int))
+        *fd_to_recv = newfd;
+    else
+        *fd_to_recv = -1;
+#endif
+    return(n);
 }
 
 int x_sock_set_block(int sockfd, int on)
@@ -150,7 +172,7 @@ int main(int argc, char **argv)
                 perror("x_sock_set_block error");
             }*/
             ret = recv_fd(sockpair[0], &fd);
-            if(ret != 0)
+            if(ret <= 0)
                 cout << "recv_fd failed." << endl;
             cout << "Recv sockfd is: " << fd << endl;
             if(getMethod(req_data.data) == "SETUP")
@@ -259,7 +281,7 @@ int main(int argc, char **argv)
 		else{
 		    buf[recvbytes] = '\0';
 		    printf("%d bytes receive from connect:\n%s\n", recvbytes, buf);
-		    send(sockfd, buf, strlen(buf)+1, 0);
+		    //send(sockfd, buf, strlen(buf)+1, 0);
 
 		    //Add message queue.
 		    int msgid;
@@ -272,10 +294,10 @@ int main(int argc, char **argv)
                     cout << "The sockfd is: " << sockfd << endl;
 		    strcpy(req_data.data, buf);
                     
-                    cout << "send_fd..." << endl;
-                    if(send_fd(sockpair[1], sockfd) != 0){
+                    if(send_fd(sockpair[1], sockfd) < 0){
                         perror("send_fd failed");
                     }
+                    cout << "send_fd..." << endl;
 
 		    if(msgsnd(msgid, (void*)&req_data, MAXLINE, 0) == -1){
 			perror("msgsnd failed");

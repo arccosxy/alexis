@@ -55,25 +55,14 @@ string handle_setup(struct req *req, string servIp, string cliIp)
 {
     string res = "";
     char sessionId[30];
-    /*
-    struct sockaddr_in serv, cli;
-    socklen_t serv_len = sizeof(serv);
-    socklen_t cli_len = sizeof(cli);
-    char serv_ip[20], cli_ip[20]; 
-    getsockname(req->type, (struct sockaddr *)&cli, &cli_len);
-    getpeername(req->type, (struct sockaddr *)&serv, &serv_len);
-    inet_ntop(AF_INET, &cli.sin_addr, cli_ip, sizeof(cli_ip));
-    inet_ntop(AF_INET, &serv.sin_addr, serv_ip, sizeof(serv_ip));
-    string cliIp(cli_ip);
-    string servIp(serv_ip);
-    cout << "The servIp is: " << servIp << endl;
-    cout << "The cliIp is: " << cliIp << endl;
-    */
+    string sid;
     global_sessionID ++;
     int len = sprintf(sessionId, "%ld", global_sessionID);
     sessionId[len] = '\0';
+    sid = sessionId;
     res += "RTSP/1.0 200 OK\r\n";
     res += "CSeq: " + getCseq(req->data) + "\r\n";
+    res += "Session: " + sid  + "\r\n";
     res += "Transport: H264T/DVBC/QAM;unicast\r\n";
     res += "OnDemandSessionId: be074250-cc5a-11d9-8cd5-0800200c9a66\r\n";
     res += "ClientSessionId: " + getClientSessionId(req->data) + "\r\n";
@@ -81,12 +70,12 @@ string handle_setup(struct req *req, string servIp, string cliIp)
     res += "\r\n";
     res += "v=0\r\n";
     res += "o=- 0 0 IN IP4 " + servIp + "\r\n";
-    res += "clint\r\n";
-    res += "IN IP4 " + cliIp + "\r\n";
+    res += "s=client\r\n";
+    res += "c=IN IP4 " + cliIp + "\r\n";
     res += "t=0 0\r\n";
     res += "a=tool:libavformat 55.21.101\r\n";
     res += "m=video 5060 RTP/AVP 96\r\n";
-    res += "rtpmap:96 H264/90000\r\n";
+    res += "a=rtpmap:96 H264/90000\r\n";
     res += "a=fmtp:96 packetization-mode=1\r\n";
 
     return res; 

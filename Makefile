@@ -2,8 +2,8 @@ CC = g++
 
 CFLAGGS = -g 
 
-testAppServer: main.o rtspServer.o
-	$(CC) -o testAppServer main.o rtspServer.o
+appServer: main.o rtspServer.o
+	$(CC) -o appServer main.o rtspServer.o
 
 main.o: main.cpp rtspServer.h
 	$(CC) $(CFLAGS) -c main.cpp

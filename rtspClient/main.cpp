@@ -3,7 +3,7 @@
 
 char	streamUri[] = "rtsp://appserver234.comcast.com:554/98765";
 char      servIP[] = "127.0.0.1";
-unsigned int    port = 554;
+unsigned int    port = 8554;
 
 int main(int argc, char *argv[])
 {

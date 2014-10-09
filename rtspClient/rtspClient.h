@@ -31,6 +31,7 @@ class rtspClient{
         struct  sockaddr_in m_sockAddr;
     private:
         void parseResMessage(char *pMessage);
+        void getSDP(char *pMessage, char *fileName);
 };
 
 #endif
