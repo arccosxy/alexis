@@ -194,7 +194,15 @@ int main(int argc, char **argv)
             }
             if(getMethod(req_data.data) == "PLAY")
             {
-                res = handle_play(&req_data);
+                struct sockaddr_in cli;
+                socklen_t cli_len = sizeof(cli);
+                char cli_ip[20];
+
+                getsockname(fd, (struct sockaddr *)&cli, &cli_len);
+                inet_ntop(AF_INET, &cli.sin_addr, cli_ip, sizeof(cli_ip));
+                string cliIp(cli_ip);
+
+                res = handle_play(&req_data, cliIp);
             }
             strcpy(response, res.c_str());
             cout << "response is:\r\n" << response;

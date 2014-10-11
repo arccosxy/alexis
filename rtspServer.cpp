@@ -100,7 +100,7 @@ string handle_setup(struct req *req, string servIp, string cliIp)
     return res; 
 }
 
-string handle_play(struct req *req)
+string handle_play(struct req *req, string cliIp)
 {
     int app_pid, video_pid;
     unsigned long wid;
@@ -137,7 +137,13 @@ string handle_play(struct req *req)
         memset(winId, 0, sizeof(winId));
         sprintf(winId, "%ld", wid);
         cout << "winId= " << winId << endl;
-        execl("./ffmpeg.sh", "./ffmpeg.sh", winId, (char *)0);
+        string clientIp = cliIp;
+        string clientUrl = "rtp://";
+        clientUrl += clientIp;
+        clientUrl += ":5060";
+        cout << "clientUrl= " << clientUrl << endl;
+        
+        execl("./ffmpeg.sh", "./ffmpeg.sh", winId, clientUrl.c_str(), (char *)0);
     }
     else{
         video_pid = child_pid2;
