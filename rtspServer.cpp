@@ -51,6 +51,25 @@ string getClientSessionId(char *pMessage)
     return clientSessionId;
 }
 
+string getSession(char *pMessage)
+{
+    string sessionId = "";
+    char *pStr = pMessage;
+    const char *pSubStr = "Session:";
+    char *pResult = strstr(pStr, pSubStr);
+    if(pResult != NULL)
+    {
+        pResult += strlen(pSubStr) + 1;
+    }
+    int i;
+    for(i = 0; *pResult != '\r'; i++)
+    {
+        sessionId += *pResult;
+        pResult ++;
+    }
+    return sessionId;
+}
+
 string handle_setup(struct req *req, string servIp, string cliIp)
 {
     string res = "";
@@ -79,6 +98,53 @@ string handle_setup(struct req *req, string servIp, string cliIp)
     res += "a=fmtp:96 packetization-mode=1\r\n";
 
     return res; 
+}
+
+string handle_play(struct req *req)
+{
+    int app_pid, video_pid;
+    unsigned long wid;
+    pid_t child_pid1, child_pid2;
+
+    string res = "";
+    res += "RTSP/1.0 200 OK\r\n";
+    res += "CSeq: " + getCseq(req->data) + "\r\n";
+    res += "Session: " + getSession(req->data)  + "\r\n";
+    res += "Range: npt=0-\r\n";
+
+    if((child_pid1 = fork()) == 0){
+        execl("/usr/lib/firefox/firefox", "firefox", (char *)0);
+    }
+    sleep(5);
+    app_pid = child_pid1;
+    cout << "app_pid = " << app_pid << endl;
+  
+    // Start with the root window.
+    Display *display = XOpenDisplay(0);
+
+    WindowsMatchingPid match(display, XDefaultRootWindow(display), app_pid);
+
+    // Print the result.
+    const list<Window> &result = match.result();
+    cout << "reslut size = "<< result.size() << endl;
+    cout << "Window id: "<< (unsigned long)(*result.begin()) << endl;
+    wid = (unsigned long)(*result.begin());
+
+    //XCloseDisplay (display2);
+ 
+    if((child_pid2 = fork()) == 0){
+        char winId[20];
+        memset(winId, 0, sizeof(winId));
+        sprintf(winId, "%ld", wid);
+        cout << "winId= " << winId << endl;
+        execl("./ffmpeg.sh", "./ffmpeg.sh", winId, (char *)0);
+    }
+    else{
+        video_pid = child_pid2;
+        cout << "video_pid= " << video_pid << endl;
+ 
+        return res;
+    }
 }
 /*
 int main()

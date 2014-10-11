@@ -150,6 +150,9 @@ size_t rtspClient::Teardown()
 
 size_t rtspClient::Play()
 {
+    int video_pid;
+    pid_t child_pid;
+
     if(m_tcpSocketDesc == -1)
     {
         return -1;
@@ -161,7 +164,7 @@ size_t rtspClient::Play()
     sprintf(playCommand, "PLAY %s RTSP/1.0\r\n"
             "CSeq: %d\r\n"
 	    "Session: %s\r\n"
-	    "Range: npt=4.000-\r\n"
+	    "Range: npt=0-\r\n"
 	    "User-Agent: shawn\r\n"
 	    "\r\n", m_szStreamUri, m_iCSeq, m_szSession);
     fprintf(stdout, "play request message is:\n%s\n", playCommand);
@@ -182,6 +185,13 @@ size_t rtspClient::Play()
 
     fflush(NULL);
     fprintf(stdout, "play response message is:\n%s\n", playResponse);
+    if((child_pid = fork()) == 0){
+         system("ffplay client.sdp > /dev/null 2>&1");
+         exit(0);
+    }
+    video_pid = child_pid;
+    cout << "client video_pid= " << video_pid << endl;
+
     return 0;
 
 }

@@ -8,6 +8,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <iostream>
+#include <stdlib.h>
+using namespace std;
 
 class rtspClient{
     public:
