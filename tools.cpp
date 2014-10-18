@@ -64,9 +64,11 @@ void
 move_to (Display *display, int x, int y)
 {
   int cur_x, cur_y;
-  coords (display, &cur_x, &cur_y);
-  XWarpPointer (display, None, None, 0,0,0,0, -cur_x, -cur_y);
+  //coords (display, &cur_x, &cur_y);
+  //XWarpPointer (display, None, None, 0,0,0,0, -cur_x, -cur_y);
+  //XWarpPointer (display, None, None, 0,0,0,0, x, y);
   XWarpPointer (display, None, None, 0,0,0,0, x, y);
+  XFlush (display);
   usleep (1);
 }
 /*

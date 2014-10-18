@@ -22,9 +22,19 @@ struct req
     char data[MAXLINE];
 };
 
+typedef struct _Geometry
+{
+    int x;
+    int y;
+    unsigned int w;
+    unsigned int h;
+} Geometry;
+
 string getMethod(char *pMessage);
 string getCsq(char *pMessage);
 string getClientSessionId(char *pMessage);
+string getSession(char *pMessage);
+string getOperation(char *pMessage);
 string handle_setup(struct req *req, string servIp, string cliIp);
 string handle_play(struct req *req, string cliIp);
 string handle_operate(struct req *req);

@@ -202,7 +202,14 @@ int main(int argc, char **argv)
                 inet_ntop(AF_INET, &cli.sin_addr, cli_ip, sizeof(cli_ip));
                 string cliIp(cli_ip);
 
-                res = handle_play(&req_data, cliIp);
+                if(strstr(req_data.data, "Operation") != NULL)
+                {
+                    res = handle_operate(&req_data);
+                }
+                else
+                {
+                    res = handle_play(&req_data, cliIp);
+                }
             }
             strcpy(response, res.c_str());
             cout << "response is:\r\n" << response;

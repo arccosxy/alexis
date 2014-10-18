@@ -70,6 +70,26 @@ string getSession(char *pMessage)
     return sessionId;
 }
 
+string getOperation(char *pMessage)
+{
+    string operation = "";
+    char *pStr = pMessage;
+    const char *pSubStr = "Operation:";
+    char *pResult = strstr(pStr, pSubStr);
+    if(pResult != NULL)
+    {
+        pResult += strlen(pSubStr) + 1;
+    }
+    int i;
+    for(i = 0; *pResult != '\r'; i++)
+    {
+        operation += *pResult;
+        pResult ++;
+    }
+    return operation;
+}
+
+
 string handle_setup(struct req *req, string servIp, string cliIp)
 {
     string res = "";
@@ -105,6 +125,7 @@ string handle_play(struct req *req, string cliIp)
     int app_pid, video_pid;
     unsigned long wid;
     pid_t child_pid1, child_pid2;
+    Window win;
 
     string res = "";
     res += "RTSP/1.0 200 OK\r\n";
@@ -129,6 +150,28 @@ string handle_play(struct req *req, string cliIp)
     cout << "reslut size = "<< result.size() << endl;
     cout << "Window id: "<< (unsigned long)(*result.begin()) << endl;
     wid = (unsigned long)(*result.begin());
+    win = *result.begin();
+
+    //将鼠标移动到应用窗口中央。
+    int x, y;
+    unsigned int bw, depth;
+    Window win_r;
+    Geometry geom;
+    memset(&geom, 0, sizeof(Geometry));
+    XGetGeometry(display, win, &win_r, &x, &y, &geom.w, &geom.h, &bw, &depth);
+    XTranslateCoordinates(display, win, win_r, x, y, &geom.x, &geom.y, &win_r);
+    x = geom.x + geom.w/2;
+    y = geom.y + geom.h/2;    
+    //char cmd[100];
+    //sprintf(cmd, "%s %s %s", "./xdotool mousemove", x, y);
+    //system(cmd);
+    //move_to(display, x, y);
+    
+    cout << "x= " << geom.x << endl;
+    cout << "y= " << geom.y << endl;
+    cout << "w= " << geom.w << endl;
+    cout << "h= " << geom.h << endl;
+    //XMoveWindow(display, *result.begin(), 100, 200);
 
     //XCloseDisplay (display2);
  
@@ -151,6 +194,32 @@ string handle_play(struct req *req, string cliIp)
  
         return res;
     }
+    //int stat_val;
+    //wait(&stat_val);
+}
+
+string handle_operate(struct req *req)
+{
+    string res = "";
+    res += "RTSP/1.0 200 OK\r\n";
+    res += "CSeq: " + getCseq(req->data) + "\r\n";
+    res += "Session: " + getSession(req->data)  + "\r\n";
+    res += "Range: npt=0-\r\n";
+    
+    Display *display = XOpenDisplay(NULL);
+    string opera = getOperation(req->data);
+    if(opera == "w")
+        move(display, 0, -10);
+    else if(opera == "s")
+        move(display, 0, 10);
+    else if(opera == "a")
+        move(display, -10, 0);
+    else if(opera == "d")
+        move(display, 10, 0);
+    else if(opera == "c")
+        click(display, Button1);
+    
+    return res;
 }
 /*
 int main()
