@@ -165,13 +165,13 @@ string handle_play(struct req *req, string cliIp)
     //char cmd[100];
     //sprintf(cmd, "%s %s %s", "./xdotool mousemove", x, y);
     //system(cmd);
-    //move_to(display, x, y);
+    move_to(display, x, y);
     
     cout << "x= " << geom.x << endl;
     cout << "y= " << geom.y << endl;
     cout << "w= " << geom.w << endl;
     cout << "h= " << geom.h << endl;
-    //XMoveWindow(display, *result.begin(), 100, 200);
+    XMoveWindow(display, win, 100, 200);
 
     //XCloseDisplay (display2);
  
