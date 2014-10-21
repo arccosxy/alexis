@@ -2,6 +2,7 @@
 #include <string>
 
 long global_sessionID = 1;
+map<string, sValue> sMap;
 
 string getMethod(char *pMessage)
 {
@@ -92,6 +93,7 @@ string getOperation(char *pMessage)
 
 string handle_setup(struct req *req, string servIp, string cliIp)
 {
+    sValue info = {"", 0, 0, 0, 0, 0};
     string res = "";
     char sessionId[30];
     string sid;
@@ -99,6 +101,7 @@ string handle_setup(struct req *req, string servIp, string cliIp)
     int len = sprintf(sessionId, "%ld", global_sessionID);
     sessionId[len] = '\0';
     sid = sessionId;
+    sMap[sid] = info;
     res += "RTSP/1.0 200 OK\r\n";
     res += "CSeq: " + getCseq(req->data) + "\r\n";
     res += "Session: " + sid  + "\r\n";
@@ -152,6 +155,10 @@ string handle_play(struct req *req, string cliIp)
     wid = (unsigned long)(*result.begin());
     win = *result.begin();
 
+    XMoveWindow(display, win, 100, 200);
+    XFlush (display);
+    //usleep (1);
+    sleep(2);
     //将鼠标移动到应用窗口中央。
     int x, y;
     unsigned int bw, depth;
@@ -171,7 +178,6 @@ string handle_play(struct req *req, string cliIp)
     cout << "y= " << geom.y << endl;
     cout << "w= " << geom.w << endl;
     cout << "h= " << geom.h << endl;
-    XMoveWindow(display, win, 100, 200);
 
     //XCloseDisplay (display2);
  

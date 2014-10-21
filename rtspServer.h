@@ -13,6 +13,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <limits.h>
+#include <map>
 
 using namespace std;
 
@@ -29,6 +30,16 @@ typedef struct _Geometry
     unsigned int w;
     unsigned int h;
 } Geometry;
+
+typedef struct sValue
+{
+    string cliIp;
+    int x;
+    int y;
+    int app_pid;
+    int video_pid;
+    unsigned long wid;
+}sValue;
 
 string getMethod(char *pMessage);
 string getCsq(char *pMessage);
