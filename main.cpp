@@ -192,7 +192,7 @@ int main(int argc, char **argv)
                 cout << "The cliIp is: " << cliIp << endl;
                 res = handle_setup(&req_data, servIp, cliIp);
             }
-            if(getMethod(req_data.data) == "PLAY")
+            else if(getMethod(req_data.data) == "PLAY")
             {
                 struct sockaddr_in cli;
                 socklen_t cli_len = sizeof(cli);
@@ -211,6 +211,11 @@ int main(int argc, char **argv)
                     res = handle_play(&req_data, cliIp);
                 }
             }
+            else if(getMethod(req_data.data) == "TEARDOWN")
+            {
+                res = handle_teardown(&req_data);
+            }
+
             strcpy(response, res.c_str());
             cout << "response is:\r\n" << response;
             send(fd, response, strlen(response)+1, 0);

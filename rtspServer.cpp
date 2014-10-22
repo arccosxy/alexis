@@ -102,6 +102,7 @@ string handle_setup(struct req *req, string servIp, string cliIp)
     sessionId[len] = '\0';
     sid = sessionId;
     sMap[sid] = info;
+    sMap[sid].cliIp = cliIp;
     res += "RTSP/1.0 200 OK\r\n";
     res += "CSeq: " + getCseq(req->data) + "\r\n";
     res += "Session: " + sid  + "\r\n";
@@ -142,6 +143,9 @@ string handle_play(struct req *req, string cliIp)
     sleep(5);
     app_pid = child_pid1;
     cout << "app_pid = " << app_pid << endl;
+
+    string sid = getSession(req->data);
+    sMap[sid].app_pid = app_pid;
   
     // Start with the root window.
     Display *display = XOpenDisplay(0);
@@ -154,6 +158,8 @@ string handle_play(struct req *req, string cliIp)
     cout << "Window id: "<< (unsigned long)(*result.begin()) << endl;
     wid = (unsigned long)(*result.begin());
     win = *result.begin();
+    
+    sMap[sid].wid = wid;
 
     XMoveWindow(display, win, 100, 200);
     XFlush (display);
@@ -168,10 +174,10 @@ string handle_play(struct req *req, string cliIp)
     XGetGeometry(display, win, &win_r, &x, &y, &geom.w, &geom.h, &bw, &depth);
     XTranslateCoordinates(display, win, win_r, x, y, &geom.x, &geom.y, &win_r);
     x = geom.x + geom.w/2;
-    y = geom.y + geom.h/2;    
-    //char cmd[100];
-    //sprintf(cmd, "%s %s %s", "./xdotool mousemove", x, y);
-    //system(cmd);
+    y = geom.y + geom.h/2;
+
+    sMap[sid].x = x;
+    sMap[sid].y = y;    
     move_to(display, x, y);
     
     cout << "x= " << geom.x << endl;
@@ -196,6 +202,7 @@ string handle_play(struct req *req, string cliIp)
     }
     else{
         video_pid = child_pid2;
+        sMap[sid].video_pid = video_pid;
         cout << "video_pid= " << video_pid << endl;
  
         return res;
@@ -225,6 +232,31 @@ string handle_operate(struct req *req)
     else if(opera == "c")
         click(display, Button1);
     
+    return res;
+}
+
+string handle_teardown(struct req *req)
+{
+    string res = "";
+    res += "RTSP/1.0 200 OK\r\n";
+    res += "CSeq: " + getCseq(req->data) + "\r\n";
+    res += "Session: " + getSession(req->data)  + "\r\n";
+    res += "OnDemandSessionId: be074250-cc5a-11d9-8cd5-0800200c9a66\r\n";
+    res += "ClientSessionId: " + getClientSessionId(req->data) + "\r\n";
+
+    string sid = getSession(req->data);
+    cout << "video_pid= " << sMap[sid].video_pid << endl;
+    cout << "app_pid= " << sMap[sid].app_pid << endl;    
+
+    char cmd[100];
+    memset(cmd, 0, sizeof(cmd));
+    sprintf(cmd, "%s %d &", "kill -TERM", sMap[sid].video_pid);
+    system(cmd);
+    memset(cmd, 0, sizeof(cmd));
+    sprintf(cmd, "%s %d &", "kill -TERM", sMap[sid].app_pid);
+    system(cmd);
+    sMap.erase(sid);
+
     return res;
 }
 /*

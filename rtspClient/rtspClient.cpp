@@ -88,8 +88,8 @@ size_t rtspClient::Setup()
     sprintf(setupCommand, "SETUP rtsp://sessionmanager2.comcast.com:554/;purchaseToken=c0c2d8b0-cc\
 82-11d9-8cd50-800200c9a66;serverID=127.0.0.1 RTSP/1.0\r\n"
             "CSeq: %d\r\n"
+            "Require: com.comcast.ngod.s1\r\n"
             "Transport: RTP/AVP;unicast;client=00AF123456DE;qam_name=Chicago.Southbend.5\r\n"
-            "User-Agent: shawn\r\n"
             "ClientSessionId: 00262254CCCA00000001\r\n", m_iCSeq);
     fprintf(stdout, "Setup request message is:\n%s\n", setupCommand);
     int iRetValue = 0;
@@ -123,11 +123,12 @@ size_t rtspClient::Teardown()
     m_iCSeq++;
     char teardownCommand[500];
     memset(teardownCommand, 0, 500);
-    sprintf(teardownCommand, "TEARDOWN %s RTSP/1.0\r\n"
+    sprintf(teardownCommand, "TEARDOWN rtsp://sessionmanager2.comcast.com:554 RTSP/1.0\r\n"
 	    "CSeq: %d\r\n"
+            "Require: com.comcast.ngod.s1\r\n"
+            "Reason: 200\r\n"
    	    "Session: %s\r\n"
-    	    "User-Agent: shawn\r\n"
-  	    "\r\n", m_szStreamUri, m_iCSeq, m_szSession);
+  	    "ClientSessionId: 00262254CCCA00000001\r\n", m_iCSeq, m_szSession);
     fprintf(stdout, "teardown request message is:\n%s\n", teardownCommand);
     int iRetValue = 0;
     iRetValue = send(m_tcpSocketDesc, teardownCommand, strlen(teardownCommand)+1, 0);
