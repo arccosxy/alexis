@@ -14,6 +14,14 @@
 
 using namespace std;
 
+typedef struct _Geometry
+{
+    int x;
+    int y;
+    unsigned int w;
+    unsigned int h;
+} Geometry;
+
 class WindowsMatchingPid
 {
 public:
@@ -82,3 +90,4 @@ void coords (Display *display, int *x, int *y);
 void move (Display *display, int x, int y);
 // Move mouse pointer (absolute)
 void move_to (Display *display, int x, int y);
+void get_window_geom(Display *disp, Window win, Geometry *geom);

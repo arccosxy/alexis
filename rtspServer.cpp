@@ -3,6 +3,7 @@
 
 long global_sessionID = 1;
 map<string, sValue> sMap;
+pthread_mutex_t work_mutex;
 
 string getMethod(char *pMessage)
 {
@@ -97,9 +98,12 @@ string handle_setup(struct req *req, string servIp, string cliIp)
     string res = "";
     char sessionId[30];
     string sid;
+    pthread_mutex_init(&work_mutex, NULL);
+    pthread_mutex_lock(&work_mutex);
     global_sessionID ++;
     int len = sprintf(sessionId, "%ld", global_sessionID);
     sessionId[len] = '\0';
+    pthread_mutex_unlock(&work_mutex);
     sid = sessionId;
     sMap[sid] = info;
     sMap[sid].cliIp = cliIp;
@@ -167,12 +171,13 @@ string handle_play(struct req *req, string cliIp)
     sleep(2);
     //将鼠标移动到应用窗口中央。
     int x, y;
-    unsigned int bw, depth;
-    Window win_r;
+    //unsigned int bw, depth;
+    //Window win_r;
     Geometry geom;
-    memset(&geom, 0, sizeof(Geometry));
-    XGetGeometry(display, win, &win_r, &x, &y, &geom.w, &geom.h, &bw, &depth);
-    XTranslateCoordinates(display, win, win_r, x, y, &geom.x, &geom.y, &win_r);
+    //memset(&geom, 0, sizeof(Geometry));
+    //XGetGeometry(display, win, &win_r, &x, &y, &geom.w, &geom.h, &bw, &depth);
+    //XTranslateCoordinates(display, win, win_r, x, y, &geom.x, &geom.y, &win_r);
+    get_window_geom(display, win, &geom);
     x = geom.x + geom.w/2;
     y = geom.y + geom.h/2;
 
@@ -197,7 +202,11 @@ string handle_play(struct req *req, string cliIp)
         clientUrl += clientIp;
         clientUrl += ":5060";
         cout << "clientUrl= " << clientUrl << endl;
-        
+
+        //char param[1024];
+        //memset(param, 0, sizeof(param));
+        //sprintf(param, "-f %dx%d -r 25 -i :0.0+%d,%d -vcodec libx264 -tune zerolatency -f rtp %s", width, height,\
+x, y, clientUrl);
         execl("./ffmpeg.sh", "./ffmpeg.sh", winId, clientUrl.c_str(), (char *)0);
     }
     else{
@@ -221,6 +230,12 @@ string handle_operate(struct req *req)
     
     Display *display = XOpenDisplay(NULL);
     string opera = getOperation(req->data);
+    string sid = getSession(req->data);
+    int x = sMap[sid].x;
+    int y = sMap[sid].y;
+    pthread_mutex_lock(&work_mutex);
+    move_to(display, x, y);
+
     if(opera == "w")
         move(display, 0, -10);
     else if(opera == "s")
@@ -231,7 +246,12 @@ string handle_operate(struct req *req)
         move(display, 10, 0);
     else if(opera == "c")
         click(display, Button1);
-    
+
+    coords(display, &x, &y);
+    pthread_mutex_unlock(&work_mutex);
+    sMap[sid].x = x;
+    sMap[sid].y = y;
+   
     return res;
 }
 
@@ -256,7 +276,7 @@ string handle_teardown(struct req *req)
     sprintf(cmd, "%s %d &", "kill -TERM", sMap[sid].app_pid);
     system(cmd);
     sMap.erase(sid);
-
+    pthread_mutex_destroy(&work_mutex);
     return res;
 }
 /*

@@ -73,6 +73,16 @@ move_to (Display *display, int x, int y)
   XFlush (display);
   usleep (1);
 }
+
+void get_window_geom(Display *disp, Window win, Geometry *geom)
+{
+    int x, y;
+    unsigned int bw, depth;
+    Window root;
+    memset(geom, 0, sizeof(Geometry));
+    XGetGeometry(disp, win, &root, &x ,&y, &geom->w, &geom->h, &bw, &depth);
+    XTranslateCoordinates(disp, win, root, x, y, &geom->x, &geom->y, &root);
+}
 /*
 void
 str_echo(int sockfd)

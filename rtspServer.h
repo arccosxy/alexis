@@ -14,8 +14,13 @@
 #include <arpa/inet.h>
 #include <limits.h>
 #include <map>
+#include <pthread.h>
 
 using namespace std;
+//#ifndef FLAG
+//#define FLAG
+//pthread_mutex_t work_mutex;
+//#endif
 
 struct req
 {
@@ -23,14 +28,14 @@ struct req
     char data[MAXLINE];
 };
 
-typedef struct _Geometry
+/*typedef struct _Geometry
 {
     int x;
     int y;
     unsigned int w;
     unsigned int h;
 } Geometry;
-
+*/
 typedef struct sValue
 {
     string cliIp;
