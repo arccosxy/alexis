@@ -2,7 +2,7 @@
 #include <string.h>
 #include <X11/Xlib.h>
 #include <unistd.h>
-
+#include <X11/Xmu/WinUtil.h>
 #include "unp.h"
 //#include "error.h"
 //#include "rw.h"
@@ -91,3 +91,4 @@ void move (Display *display, int x, int y);
 // Move mouse pointer (absolute)
 void move_to (Display *display, int x, int y);
 void get_window_geom(Display *disp, Window win, Geometry *geom);
+void send_keystrokes(Display *disp, Window win, const char*keys);

@@ -3,6 +3,7 @@
  
 #include "tools.h"
 
+#define DefRootWin DefaultRootWindow(disp)
 // Simulate mouse click
 void
 click (Display *display, int button)
@@ -83,6 +84,112 @@ void get_window_geom(Display *disp, Window win, Geometry *geom)
     XGetGeometry(disp, win, &root, &x ,&y, &geom->w, &geom->h, &bw, &depth);
     XTranslateCoordinates(disp, win, root, x, y, &geom->x, &geom->y, &root);
 }
+
+void send_keystrokes(Display *disp, Window win, const char*keys)
+{
+  Bool escaped=0;
+  char numkeys_upper[]="~!@#$%^&*()_+|";
+  char numkeys_lower[]="`1234567890-=\\";
+  int navkeys[]={XK_Insert,XK_End,XK_Down,XK_Page_Down,XK_Left,-1,XK_Right,XK_Home,XK_Up,XK_Page_Up};
+  int funkeys[]={XK_F1,XK_F2,XK_F3,XK_F4,XK_F5,XK_F6,XK_F7,XK_F8,XK_F9,XK_F10,XK_F11,XK_F12};
+  unsigned const char*p;
+  char*n;
+  XEvent ev;
+  memset(&ev.xkey,0,sizeof(XKeyEvent));
+  ev.xkey.subwindow=None;
+  ev.xkey.serial=1;
+  ev.xkey.display=disp;
+  ev.xkey.window=win;
+  ev.xkey.root=DefRootWin;
+  ev.xkey.same_screen=1;
+  for (p=(unsigned const char*)keys; *p; p++) {
+    int c;
+    switch (*p) {
+      case '\n':
+        c=XK_Return;
+        break;
+      case '\t':
+        c=XK_Tab;
+        break;
+      case '\033':
+        c=XK_Escape;
+        break;
+      case '\b':
+        c=XK_BackSpace;
+        break;
+      case '%':
+        if (!escaped) {
+          escaped=True;
+          continue;
+        } else {
+          c=*p;
+          break;
+        }
+      case '^':
+        if (!escaped) {
+          ev.xkey.state|=ControlMask;
+          continue;
+        }
+      case '~':
+        if (!escaped) {
+          ev.xkey.state|=Mod1Mask;
+          continue;
+        }
+      case '+':
+        if (!escaped) {
+          ev.xkey.state|=ShiftMask;
+          continue;
+        }
+      case 'f':
+      case 'F': {
+        int f;
+        if (escaped && p[1] && strchr("01", p[1]) && (p[2]>='0') && (p[2]<='9')) {
+          char num[3]={0,0,0};
+          if (p[1]=='1') {
+            strncpy(num,(char*)p+1,2);
+          } else {
+            num[0]=p[2];
+          }
+          f=atoi(num);
+          c= ((f>0)&&(f<13)) ? funkeys[f-1] : *p;
+          p+=2;
+        } else {
+          c=*p;
+        }
+        break;
+      }
+      case '.':
+        c=escaped?XK_Delete:*p;
+        break;
+      default:
+      c=*p;
+    }
+    n=strchr(numkeys_upper,c);
+    if (n) {
+      c=numkeys_lower[n-numkeys_upper];
+      ev.xkey.state|=ShiftMask;
+    } else {
+      if (escaped && (c>='0') && (c<='9') && (c!='5')) {
+        c=navkeys[c-48];
+      } else {
+        ev.xkey.state|=isupper(c)?ShiftMask:0;
+      }
+    }
+    ev.xkey.keycode=XKeysymToKeycode(disp,c);
+    ev.xkey.type=KeyPress;
+    XSendEvent(disp, win, True, KeyPressMask,&ev);
+    usleep(1000);
+    XSync(disp, False);
+    ev.xkey.time=CurrentTime;
+    ev.xkey.type=KeyRelease;
+    XSendEvent(disp, win, True, KeyPressMask,&ev);
+    usleep(1000);
+    XSync(disp, False);
+    ev.xkey.state=0;
+    escaped=False;
+  }
+}
+
 /*
 void
 str_echo(int sockfd)

@@ -203,10 +203,11 @@ string handle_play(struct req *req, string cliIp)
         clientUrl += ":5060";
         cout << "clientUrl= " << clientUrl << endl;
 
-        //char param[1024];
+        //char param[500];
         //memset(param, 0, sizeof(param));
-        //sprintf(param, "-f %dx%d -r 25 -i :0.0+%d,%d -vcodec libx264 -tune zerolatency -f rtp %s", width, height,\
-x, y, clientUrl);
+        //sprintf(param, "-f x11grab -s %dx%d -r 25 -i :0.0+%d,%d -vcodec libx264 -tune zerolatency -f rtp %s", geom.w, geom.h, geom.x, geom.y, clientUrl.c_str());
+        //cout << param << endl;
+        //execl("/usr/local/bin/ffmpeg", "ffmpeg", param, (char *)0);
         execl("./ffmpeg.sh", "./ffmpeg.sh", winId, clientUrl.c_str(), (char *)0);
     }
     else{
@@ -248,6 +249,7 @@ string handle_operate(struct req *req)
         click(display, Button1);
 
     coords(display, &x, &y);
+    //send_keystrokes(display, sMap[sid].wid, "F");
     pthread_mutex_unlock(&work_mutex);
     sMap[sid].x = x;
     sMap[sid].y = y;
