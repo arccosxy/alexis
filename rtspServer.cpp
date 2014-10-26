@@ -203,12 +203,16 @@ string handle_play(struct req *req, string cliIp)
         clientUrl += ":5060";
         cout << "clientUrl= " << clientUrl << endl;
 
-        //char param[500];
-        //memset(param, 0, sizeof(param));
-        //sprintf(param, "-f x11grab -s %dx%d -r 25 -i :0.0+%d,%d -vcodec libx264 -tune zerolatency -f rtp %s", geom.w, geom.h, geom.x, geom.y, clientUrl.c_str());
-        //cout << param << endl;
-        //execl("/usr/local/bin/ffmpeg", "ffmpeg", param, (char *)0);
-        execl("./ffmpeg.sh", "./ffmpeg.sh", winId, clientUrl.c_str(), (char *)0);
+        char paramS[50];
+        memset(paramS, 0, sizeof(paramS));
+        sprintf(paramS, "%dx%d", geom.w, geom.h);
+        char paramI[50];
+        memset(paramI, 0, sizeof(paramI));
+        sprintf(paramI, ":0.0+%d,%d", geom.x, geom.y);
+        
+        execl("/usr/local/bin/ffmpeg", "ffmpeg", "-f", "x11grab", "-s", paramS, "-r", "25", "-i", paramI, "-vcodec", "libx264", "-tune", "zerolatency", "-f", "rtp", clientUrl.c_str(), (char *)0);
+        //execl("/bin/ls", "ls", "-al", "/home/xuyang", (char *)0);
+        //execl("./ffmpeg.sh", "./ffmpeg.sh", winId, clientUrl.c_str(), (char *)0);
     }
     else{
         video_pid = child_pid2;
@@ -242,14 +246,49 @@ string handle_operate(struct req *req)
     else if(opera == "s")
         move(display, 0, 10);
     else if(opera == "a")
-        move(display, -10, 0);
+        move(display, -20, 0);
     else if(opera == "d")
-        move(display, 10, 0);
+        move(display, 20, 0);
     else if(opera == "c")
         click(display, Button1);
-
+    else if(opera == "0"){
+        send_keystrokes(display, sMap[sid].wid, "0");
+    }
+    else if(opera == "1"){
+        send_keystrokes(display, sMap[sid].wid, "1");
+    }
+    else if(opera == "2"){
+        send_keystrokes(display, sMap[sid].wid, "2");
+    }
+    else if(opera == "3"){
+        send_keystrokes(display, sMap[sid].wid, "3");
+    }
+    else if(opera == "4"){
+        send_keystrokes(display, sMap[sid].wid, "4");
+    }
+    else if(opera == "5"){
+        send_keystrokes(display, sMap[sid].wid, "5");
+    }
+    else if(opera == "6"){
+        send_keystrokes(display, sMap[sid].wid, "6");
+    }
+    else if(opera == "7"){
+        send_keystrokes(display, sMap[sid].wid, "7");
+    }
+    else if(opera == "8"){
+        send_keystrokes(display, sMap[sid].wid, "8");
+    }
+    else if(opera == "9"){
+        send_keystrokes(display, sMap[sid].wid, "9");
+    }
+    else if(opera == "e"){
+        send_keystrokes(display, sMap[sid].wid, "\b");
+    }    
+    else if(opera == "n"){
+        send_keystrokes(display, sMap[sid].wid, "\n");
+    }    
     coords(display, &x, &y);
-    //send_keystrokes(display, sMap[sid].wid, "F");
+    //send_keystrokes(display, sMap[sid].wid, "0");
     pthread_mutex_unlock(&work_mutex);
     sMap[sid].x = x;
     sMap[sid].y = y;
