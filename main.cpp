@@ -9,18 +9,9 @@
 #define OPEN_MAX 1024
 #endif
 #define CONTROLLEN sizeof(struct cmsghdr) + sizeof(int)
-/*
-struct req 
-{
-    int type;
-    char data[MAXLINE];
-};
-*/
+
 ssize_t send_fd(int sockfd, int fd_to_send)
 {
-    //char tmpbuf[CONTROLLEN];
-    //struct cmsghdr *cmptr = (struct cmsghdr *)tmpbuf;
-
 #ifdef HAVE_MSGHDR_MSG_CONTROL
     union{
         struct cmsghdr cm;
@@ -167,10 +158,6 @@ int main(int argc, char **argv)
             }
             printf("msgcv:\n%s", req_data.data);
             
-            /*ret = x_sock_set_block(sockpair[0], 1);
-            if(ret != 0){
-                perror("x_sock_set_block error");
-            }*/
             ret = recv_fd(sockpair[0], &fd);
             if(ret <= 0)
                 cout << "recv_fd failed." << endl;
